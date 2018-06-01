@@ -92,6 +92,8 @@ def gen_batch_function(data_folder, image_shape):
                 gt_bg = gt_bg.reshape(*gt_bg.shape, 1)
                 gt_image = np.concatenate((gt_bg, np.invert(gt_bg)), axis=2)
 
+                # image, gt_image = modify_picture(image, gt_image)
+
                 images.append(image)
                 gt_images.append(gt_image)
 
@@ -128,7 +130,7 @@ def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape)
 
 def save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image):
     # Make folder for current run
-    output_dir = datetime.datetime.utcfromtimestamp(time.time())
+    output_dir = datetime.datetime.fromtimestamp(time.time())
     output_dir = os.path.join(runs_dir, output_dir.strftime("%Y%m%d-%H%M%S"))
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
@@ -140,3 +142,27 @@ def save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_p
         sess, logits, keep_prob, input_image, os.path.join(data_dir, 'data_road/testing'), image_shape)
     for name, image in image_outputs:
         scipy.misc.imsave(os.path.join(output_dir, name), image)
+
+def modify_picture(image, label):
+    """
+    Modify pictures for augmenting the dataset
+    """
+
+    # flip
+    if np.random.rand() > 0.5:
+        image = np.fliplr(image)
+        label = np.fliplr(label)
+
+    # rotate    
+    if np.random.rand() > 0.5:
+        max_angle = 5
+        image = scipy.ndimage.interpolation.rotate(image, random.uniform(-max_angle, max_angle))
+        label = scipy.ndimage.interpolation.rotate(label, random.uniform(-max_angle, max_angle))
+
+    # shift
+    if np.random.rand() > 0.5:
+        max_zoom = 1.3
+        image = scipy.ndimage.interpolation.shift(image, random.uniform(-1, 1))    
+        label = scipy.ndimage.interpolation.shift(label, random.uniform(-1, 1))
+
+    return image, label
